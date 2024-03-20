@@ -10,7 +10,12 @@ VIRTUAL_WIDTH = 432
 VIRTUAL_HEIGHT = 243
 
 PADDLE_SPEED = 250
+
 goalScore = 5
+
+ballIncreaseSize = 10
+ballMaxSize = 350
+ballMinSize = 10
 
 function love.load()
 	love.graphics.setDefaultFilter('nearest', 'nearest')
@@ -41,10 +46,11 @@ function love.load()
 	servingPlayer = 1
 	
 	player1 = Paddle(10, 30, 5, 20)
-	player2 = Paddle(VIRTUAL_WIDTH - 10, VIRTUAL_HEIGHT - 30, 5, 20)
+	player2 = Paddle(VIRTUAL_WIDTH - 15, VIRTUAL_HEIGHT - 50, 5, 20)
 
 	ball = Ball(VIRTUAL_WIDTH / 2 - 2, VIRTUAL_HEIGHT / 2 - 2, 4, 4)
 	gameState = 'start'
+	ballMode = 'big'
 end
 
 function love.resize(w, h)
@@ -64,9 +70,11 @@ function love.update(dt)
 			ball.dx = -ball.dx * 1.03
 			ball.x = player1.x + player1.width
 			sounds['paddle_hit']:play()
-			ball.width = ball.width + 3
-			ball.height = ball.height + 3
-
+			if ballMode == 'big' then
+				ball.size = ball.size + ballIncreaseSize
+			else
+				ball.size = ball.size - ballIncreaseSize
+			end
 			if ball.dy < 0 then
 				ball.dy = -math.random(10, 150)
 			else
@@ -75,11 +83,14 @@ function love.update(dt)
 		end
 		if ball:collides(player2) then
 			ball.dx = -ball.dx * 1.03
-			ball.x = player2.x - ball.width
 			sounds['paddle_hit']:play()
-			ball.width = ball.width + 3
-			ball.height = ball.height + 3
-
+			if ballMode == 'big' then
+				ball.x = player2.x - ball.size - ballIncreaseSize
+				ball.size = ball.size + ballIncreaseSize
+			else
+				ball.x = player2.x - ball.size + ballIncreaseSize
+				ball.size = ball.size - ballIncreaseSize
+			end
 			if ball.dy < 0 then
 				ball.dy = -math.random(10, 150)
 			else
@@ -93,8 +104,8 @@ function love.update(dt)
 			sounds['wall_hit']:play()
 		end
 		
-		if ball.y >= VIRTUAL_HEIGHT - ball.height then
-			ball.y = VIRTUAL_HEIGHT - ball.height
+		if ball.y >= VIRTUAL_HEIGHT - ball.size then
+			ball.y = VIRTUAL_HEIGHT - ball.size
 			ball.dy = -ball.dy
 			sounds['wall_hit']:play()
 		end
@@ -114,7 +125,7 @@ function love.update(dt)
 		end
 	end
 
-	if ball.x + ball.width > VIRTUAL_WIDTH then
+	if ball.x + ball.size > VIRTUAL_WIDTH then
 		servingPlayer = 2
 		player1Score = player1Score + 1
 		ball:reset()
@@ -147,6 +158,11 @@ function love.update(dt)
 	end
 
 	if gameState == 'play' then
+		if ballMode == 'big' and ball.size >= ballMaxSize then
+			ballMode = 'small'
+		elseif ballMode == 'small' and ball.size <= ballMinSize then
+			ballMode = 'big'
+		end
 		ball:update(dt)
 	end
 
@@ -211,6 +227,7 @@ function love.draw()
 	ball:render()
 
 	displayFPS()
+	displayBallSize()
 
 	push:apply('end')
 end
@@ -219,6 +236,12 @@ function displayFPS()
 	love.graphics.setFont(smallFont)
 	love.graphics.setColor(0, 255/255, 0, 255/255)
 	love.graphics.print('FPS: ' .. tostring(love.timer.getFPS()), 10, 10)
+end
+
+function displayBallSize()
+	love.graphics.setFont(smallFont)
+	love.graphics.setColor(0, 255/255, 0, 255/255)
+	love.graphics.print('Ball: ' .. tostring(ball.size), 10, 20)
 end
 
 function displayScore()
